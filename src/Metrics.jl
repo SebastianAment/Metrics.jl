@@ -80,15 +80,19 @@ end
 (E::EnergeticInner)(x, y) = dot(x, E.A, y) # energetic inner product
 
 ########################### for AD , avoids NaN 0 ##############################
-# i.e. makes forwardiff for norms behave like sum(abs, 0) at 0
+# i.e. makes forwardiff for norms behave well at 0
+# otherwise derivative gives NaN, because of square root
 @inline function _fd_euclidean_norm(x)
-    all(==(0), x) ? zero(eltype(x)) : √sum(abs2, x)
+    x = sum(abs2, x)
+    x ≈ 0 ? zero(x) : √x
 end
 @inline function _fd_p_norm(p, x)
-    all(==(0), x) ? zero(eltype(x)) : sum(x->x^p, x)^(1/p)
+    xp = sum(x->x^p, x)
+    xp ≈ 0 ? zero(xp) : xp^(1/p)
 end
 @inline function _fd_energetic_norm(A, x)
-    all(==(0), x) ? zero(eltype(x)) : √dot(x, A, x)
+    xAx = dot(x, A, x)
+    xAx ≈ 0 ? zero(xAx) : √xAx
 end
 
 using ForwardDiff: Dual

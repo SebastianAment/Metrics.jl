@@ -26,7 +26,7 @@ using LinearAlgebraExtensions: LowRank
     # 2. differentiate matrix
     function f(θ)
         U = reshape(θ, d, r)
-        EnergeticNorm(LowRank(U))(0.)
+        EnergeticNorm(LowRank(U))(zeros(d))
     end
     θ = U[:]
     @test gradient(f, θ) ≈ zero(θ)
