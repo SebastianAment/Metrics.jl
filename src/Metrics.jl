@@ -79,24 +79,27 @@ end
 
 (E::EnergeticInner)(x, y) = dot(x, E.A, y) # energetic inner product
 
-# autodifferentiation rule, avoids funny business at 0
+########################### for AD , avoids NaN 0 ##############################
 # i.e. makes forwardiff for norms behave like sum(abs, 0) at 0
-const DualContainer{T} = Union{T, AbstractArray{T}, NTuple{N, T} where N}
-function (N::EuclideanNorm)(x::DualContainer{T}) where {T<:FD.Dual}
-    v = all(==(0), x) ? sum(abs, x) : √sum(abs2, x)
+@inline function _fd_euclidean_norm(x)
+    all(==(0), x) ? zero(eltype(x)) : √sum(abs2, x)
+end
+@inline function _fd_p_norm(p, x)
+    all(==(0), x) ? zero(eltype(x)) : sum(x->x^p, x)^(1/p)
+end
+@inline function _fd_energetic_norm(A, x)
+    all(==(0), x) ? zero(eltype(x)) : √dot(x, A, x)
 end
 
-function (N::PNorm)(x::DualContainer{T}) where {T<:FD.Dual}
-    v = all(==(0), x) ? sum(abs, x) : sum(x->x^N.p, x)^(1/N.p)
-end
+using ForwardDiff: Dual
+const DualContainer{T<:Dual} = Union{T, AbstractArray{T}, NTuple{N, T} where N}
 
-function (N::EnergeticNorm)(x::DualContainer{T}) where {T<:FD.Dual}
-    v = all(==(0), x) ? sum(abs, x) : √dot(x, E.A, y)
-end
+(N::EuclideanNorm)(x::DualContainer) = _fd_euclidean_norm(x)
 
-# function (N::Norm)(x::V) where {T<:FD.Dual, V<:Union{T, AbstractArray{T}, NTuple{N, T} where N}}
-#     v = N(Float(x))
-#     v.value ≈ 0 ? typeof(v)(0) : v
-# end
+(N::PNorm)(x::DualContainer) = _fd_p_norm(N.p, x)
+(N::PNorm{<:Dual})(x) = _fd_p_norm(N.p, x)
+
+(N::EnergeticNorm)(x::DualContainer) = _fd_energetic_norm(N.A, x)
+(N::EnergeticNorm{<:Dual})(x) = _fd_energetic_norm(N.A, x)
 
 end # Metrics
